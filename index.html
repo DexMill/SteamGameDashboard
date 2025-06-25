@@ -80,14 +80,28 @@
             const originalPrice = priceData.initial_formatted;
             const discountPercent = priceData.discount_percent;
 
+            // Clean up European price format (remove dashes and fix formatting)
+            const cleanPrice = (price) => {
+              if (!price) return price;
+              // Remove dashes and clean up formatting
+              return price
+                .replace(/--/g, "")
+                .replace(/,\s*€$/, "€")
+                .replace(/€\s*$/, "€");
+            };
+
             if (discountPercent > 0) {
               priceDisplay = `
-                <span style="text-decoration: line-through; color: #888;">${originalPrice}</span>
-                <span style="color: #00ff41; font-weight: bold;">${currentPrice}</span>
+                <span style="text-decoration: line-through; color: #888;">${cleanPrice(
+                  originalPrice
+                )}</span>
+                <span style="color: #00ff41; font-weight: bold;">${cleanPrice(
+                  currentPrice
+                )}</span>
                 <span style="color: #00ff41; font-size: 0.9em;">(-${discountPercent}%)</span>
               `;
             } else {
-              priceDisplay = currentPrice;
+              priceDisplay = cleanPrice(currentPrice);
             }
           } else if (gameData) {
             // Handle free games, demos, and games without price data
