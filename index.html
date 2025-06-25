@@ -123,6 +123,7 @@
           );
           const priceJson = await priceRes.json();
           const priceData = priceJson[id]?.data?.price_overview;
+          const gameData = priceJson[id]?.data;
 
           let priceDisplay = "N/A";
           if (priceData) {
@@ -138,6 +139,24 @@
               `;
             } else {
               priceDisplay = currentPrice;
+            }
+          } else if (gameData) {
+            // Handle free games, demos, and games without price data
+            if (gameData.is_free) {
+              priceDisplay =
+                '<span style="color: #4CAF50; font-weight: bold;">FREE</span>';
+            } else if (gameData.type === "demo") {
+              priceDisplay =
+                '<span style="color: #2196F3; font-weight: bold;">DEMO</span>';
+            } else if (
+              gameData.release_date &&
+              gameData.release_date.coming_soon
+            ) {
+              priceDisplay =
+                '<span style="color: #FF9800; font-weight: bold;">COMING SOON</span>';
+            } else {
+              priceDisplay =
+                '<span style="color: #888;">Price not available</span>';
             }
           }
 
