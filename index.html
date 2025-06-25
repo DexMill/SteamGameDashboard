@@ -202,21 +202,49 @@
 
           // News
           const newsUrl = `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2?appid=${id}&count=5`;
-          const newsJson = await makeAPICall(newsUrl);
-          const news = newsJson.appnews?.newsitems || [];
+          let news = [];
+
+          try {
+            const newsJson = await makeAPICall(newsUrl);
+            news = newsJson.appnews?.newsitems || [];
+          } catch (newsError) {
+            console.log(`News fetch failed for ${id}:`, newsError);
+            // Continue without news - don't fail the entire request
+          }
 
           const newsList = document.getElementById("newsList");
-          newsList.innerHTML = news
-            .map(
-              (item) => `
-            <li data-date="${new Date(item.date * 1000).toLocaleDateString()}">
-              <a href="${item.url}" target="_blank" rel="noopener noreferrer">
-                ${item.title}
-              </a>
-            </li>
-          `
-            )
-            .join("");
+
+          if (news.length > 0) {
+            newsList.innerHTML = news
+              .map(
+                (item) => `
+              <li data-date="${new Date(
+                item.date * 1000
+              ).toLocaleDateString()}">
+                <a href="${item.url}" target="_blank" rel="noopener noreferrer">
+                  ${item.title}
+                </a>
+              </li>
+            `
+              )
+              .join("");
+          } else {
+            // Handle cases where no news is available
+            if (gameData && gameData.type === "demo") {
+              newsList.innerHTML =
+                '<li style="color: #b0b0b0;">No news available for demos</li>';
+            } else if (
+              gameData &&
+              gameData.release_date &&
+              gameData.release_date.coming_soon
+            ) {
+              newsList.innerHTML =
+                '<li style="color: #b0b0b0;">No news available (Coming Soon)</li>';
+            } else {
+              newsList.innerHTML =
+                '<li style="color: #b0b0b0;">No recent news available</li>';
+            }
+          }
 
           // Update timestamp
           const now = new Date();
