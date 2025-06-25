@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game Dashboard</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #1e1e1e;
+        color: #f0f0f0;
+        margin: 0;
+        padding: 0;
+      }
+      .tab-header {
+        display: flex;
+        background: #333;
+      }
+      .tab-header button {
+        flex: 1;
+        padding: 1rem;
+        background: #333;
+        border: none;
+        color: #f0f0f0;
+        cursor: pointer;
+      }
+      .tab-header button.active {
+        background: #555;
+      }
+      .content {
+        padding: 1rem;
+      }
+      .game-section {
+        margin-bottom: 1.5rem;
+      }
+      .input-group {
+        display: flex;
+        margin: 1rem;
+      }
+      .input-group input {
+        flex: 1;
+        padding: 0.5rem;
+        border: none;
+        border-radius: 4px 0 0 4px;
+      }
+      .input-group button {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: #556b2f;
+        color: #fff;
+        cursor: pointer;
+        border-radius: 0 4px 4px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="input-group">
+      <input id="newGame" placeholder="Enter game name or ID" />
+      <button onclick="addTab()">Add Game</button>
+    </div>
+    <div id="tabHeader" class="tab-header"></div>
+    <div class="content">
+      <div class="game-section">
+        <h2>Current Price: <span id="price">Loading...</span></h2>
+      </div>
+      <div class="game-section">
+        <h2>Current Players: <span id="players">Loading...</span></h2>
+        <button
+          onclick="refreshCurrentGame()"
+          style="
+            margin-left: 10px;
+            padding: 5px 10px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+          "
+        >
+          🔄 Refresh
+        </button>
+      </div>
+      <div class="game-section">
+        <h2>Latest News:</h2>
+        <ul id="newsList"></ul>
+      </div>
+      <div class="game-section">
+        <h2>Last Updated:</h2>
+        <span id="lastUpdated">Loading...</span>
+      </div>
+    </div>
+
+    <script>
+      let tabs = [
+        { name: "Rumble", id: "890550" },
+        { name: "Expedition 33", id: "1903340" },
+        { name: "Bloodthief", id: "2533600" },
+      ];
+      let activeTab = tabs[0].name;
+
+      // Resolve game ID by name or direct ID
+      async function resolveGame(query) {
+        if (/^\d+$/.test(query)) {
+          return { id: query, name: query };
+        } else {
+          const res = await fetch(
+            `/api/storesearch?term=${encodeURIComponent(query)}&l=english&cc=US`
+          );
+          const data = await res.json();
+          if (data.items && data.items.length) {
+            const item = data.items[0];
+            return { id: item.id, name: item.name };
+          }
+          throw new Error("Game not found");
+        }
+      }
+
+      async function fetchGameData(id) {
+        try {
+          // Price
+          const priceRes = await fetch(
+            `/api/appdetails?appids=${id}&l=english`
+          );
+          const priceJson = await priceRes.json();
+          const priceData = priceJson[id]?.data?.price_overview;
+
+          let priceDisplay = "N/A";
+          if (priceData) {
+            const currentPrice = priceData.final_formatted;
+            const originalPrice = priceData.initial_formatted;
+            const discountPercent = priceData.discount_percent;
+
+            if (discountPercent > 0) {
+              priceDisplay = `
+                <span style="text-decoration: line-through; color: #888;">${originalPrice}</span>
+                <span style="color: #4CAF50; font-weight: bold;">${currentPrice}</span>
+                <span style="color: #4CAF50; font-size: 0.9em;">(-${discountPercent}%)</span>
+              `;
+            } else {
+              priceDisplay = currentPrice;
+            }
+          }
+
+          document.getElementById("price").innerHTML = priceDisplay;
+
+          // Players
+          const playerRes = await fetch(`/api/players?appid=${id}`);
+          const playerJson = await playerRes.json();
+          const players = playerJson.response?.player_count ?? "N/A";
+          document.getElementById("players").textContent = players;
+
+          // News
+          const newsRes = await fetch(`/api/news?appid=${id}&count=5`);
+          const newsJson = await newsRes.json();
+          const news = newsJson.appnews?.newsitems || [];
+
+          const newsList = document.getElementById("newsList");
+          newsList.innerHTML = news
+            .map(
+              (item) => `
+            <li>
+              <a href="${item.url}" target="_blank" rel="noopener noreferrer">
+                ${item.title}
+              </a>
+              (${new Date(item.date * 1000).toLocaleDateString()})
+            </li>
+          `
+            )
+            .join("");
+
+          // Update timestamp
+          const now = new Date();
+          document.getElementById("lastUpdated").textContent =
+            now.toLocaleTimeString();
+        } catch (err) {
+          console.error(err);
+          document.getElementById("price").textContent = "Error";
+          document.getElementById("players").textContent = "Error";
+          document.getElementById("newsList").innerHTML = "";
+        }
+      }
+
+      function renderTabs() {
+        const tabHeader = document.getElementById("tabHeader");
+        tabHeader.innerHTML = tabs
+          .map(
+            (tab) => `
+          <button 
+            class="${tab.name === activeTab ? "active" : ""}"
+            onclick="setActiveTab('${tab.name}')"
+          >
+            ${tab.name}
+          </button>
+        `
+          )
+          .join("");
+      }
+
+      function setActiveTab(name) {
+        activeTab = name;
+        renderTabs();
+        const game = tabs.find((t) => t.name === name);
+        if (game) {
+          document.getElementById("price").textContent = "Loading...";
+          document.getElementById("players").textContent = "Loading...";
+          document.getElementById("newsList").innerHTML = "";
+          fetchGameData(game.id);
+        }
+      }
+
+      function refreshCurrentGame() {
+        const game = tabs.find((t) => t.name === activeTab);
+        if (game) {
+          document.getElementById("price").textContent = "Loading...";
+          document.getElementById("players").textContent = "Loading...";
+          document.getElementById("newsList").innerHTML = "";
+          fetchGameData(game.id);
+        }
+      }
+
+      async function addTab() {
+        const newGameInput = document.getElementById("newGame");
+        const query = newGameInput.value.trim();
+        if (!query) return;
+
+        try {
+          const { id, name } = await resolveGame(query);
+          if (tabs.find((t) => t.name === name)) {
+            alert("Tab already exists");
+            return;
+          }
+          tabs.push({ name, id });
+          newGameInput.value = "";
+          setActiveTab(name);
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      document.getElementById("newGame").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          addTab();
+        }
+      });
+
+      // Initial render
+      renderTabs();
+      fetchGameData(tabs[0].id);
+    </script>
+  </body>
+</html>
