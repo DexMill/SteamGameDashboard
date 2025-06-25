@@ -53,7 +53,11 @@
           return { id: query, name: query };
         } else {
           const res = await fetch(
-            `/api/storesearch?term=${encodeURIComponent(query)}&l=english&cc=US`
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(
+              `https://store.steampowered.com/api/storesearch?term=${encodeURIComponent(
+                query
+              )}&l=english&cc=US`
+            )}`
           );
           const data = await res.json();
           if (data.items && data.items.length) {
@@ -68,7 +72,9 @@
         try {
           // Price
           const priceRes = await fetch(
-            `/api/appdetails?appids=${id}&l=english`
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(
+              `https://store.steampowered.com/api/appdetails?appids=${id}&l=english`
+            )}`
           );
           const priceJson = await priceRes.json();
           const priceData = priceJson[id]?.data?.price_overview;
@@ -126,7 +132,11 @@
           document.getElementById("price").innerHTML = priceDisplay;
 
           // Players
-          const playerRes = await fetch(`/api/players?appid=${id}`);
+          const playerRes = await fetch(
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(
+              `https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${id}`
+            )}`
+          );
           const playerJson = await playerRes.json();
 
           // Debug logging
@@ -176,7 +186,11 @@
           document.getElementById("players").innerHTML = playerDisplay;
 
           // News
-          const newsRes = await fetch(`/api/news?appid=${id}&count=5`);
+          const newsRes = await fetch(
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(
+              `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2?appid=${id}&count=5`
+            )}`
+          );
           const newsJson = await newsRes.json();
           const news = newsJson.appnews?.newsitems || [];
 

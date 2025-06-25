@@ -1,74 +1,70 @@
 # Game Dashboard
 
-A web application that displays real-time information about Steam games including current prices, player counts, and latest news.
+A cyberpunk-themed game dashboard that displays Steam game information including prices, player counts, and latest news. Built as a static web application that works directly in the browser.
 
 ## Features
 
-- View current prices for Steam games
-- Check real-time player counts
-- Browse latest news and updates
-- Add new games by name or Steam ID
-- Tabbed interface for multiple games
+- **Real-time Game Data**: Fetches current prices, player counts, and news from Steam APIs
+- **Dynamic Tabs**: Add and remove games to track multiple titles simultaneously
+- **Cyberpunk UI**: Modern neon-themed interface with smooth animations
+- **Responsive Design**: Works on desktop and mobile devices
+- **Local Storage**: Saves your game selections between sessions
 
-## Setup Instructions
+## How to Use
 
-### Prerequisites
-
-- Node.js (version 14 or higher)
-- npm (comes with Node.js)
-
-### Installation
-
-1. Install the required dependencies:
-
-   ```bash
-   npm install
-   ```
-
-2. Start the server:
-
-   ```bash
-   npm start
-   ```
-
-3. Open your browser and navigate to:
-   ```
-   http://localhost:3000
-   ```
-
-## How it Works
-
-The application uses a Node.js proxy server to bypass CORS restrictions when making API calls to Steam's servers. The proxy server handles:
-
-- Steam Store API calls for game details and pricing
-- Steam User Stats API for player counts
-- Steam News API for game updates and news
-- Steam Store Search API for finding games by name
-
-## API Endpoints
-
-The proxy server provides the following endpoints:
-
-- `/api/appdetails` - Get game details and pricing
-- `/api/players` - Get current player count
-- `/api/news` - Get latest news for a game
-- `/api/storesearch` - Search for games by name
-
-## Troubleshooting
-
-If you encounter any issues:
-
-1. Make sure all dependencies are installed: `npm install`
-2. Check that the server is running on port 3000
-3. Ensure you're accessing the application through `http://localhost:3000` and not by opening the HTML file directly
-4. Check the browser console for any error messages
+1. **Add Games**: Enter a game name or Steam ID in the input field and click "Add Game"
+2. **Switch Between Games**: Click on different tabs to view data for different games
+3. **Remove Games**: Click the × button on any tab to remove it (you can't remove the last tab)
+4. **Refresh Data**: Click the refresh button to get the latest information
 
 ## Default Games
 
-The application comes pre-loaded with three games:
+The dashboard comes pre-loaded with:
 
 - Rumble (ID: 890550)
 - Expedition 33 (ID: 1903340)
-- Bloodthief (ID: 2533600)
+- Bloodthief Demo (ID: 2941730)
 
-You can add more games by entering their name or Steam ID in the input field.
+## Technical Details
+
+- **Frontend**: Pure HTML, CSS, and JavaScript
+- **APIs**: Direct calls to Steam Web APIs using CORS proxy
+- **Storage**: Browser localStorage for game preferences
+- **Deployment**: Static site compatible with GitHub Pages, Netlify, etc.
+
+## Local Development
+
+To run locally, simply open `index.html` in your browser. No server required!
+
+For development with live reload:
+
+```bash
+# Using Python 3
+python -m http.server 8000
+
+# Using Node.js
+npx serve .
+
+# Using PHP
+php -S localhost:8000
+```
+
+## API Endpoints Used
+
+- Steam Store Search: `https://store.steampowered.com/api/storesearch`
+- Game Details: `https://store.steampowered.com/api/appdetails`
+- Player Count: `https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1`
+- Game News: `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2`
+
+## Browser Compatibility
+
+Works in all modern browsers that support:
+
+- ES6+ JavaScript features
+- Fetch API
+- CSS Grid and Flexbox
+- CSS Custom Properties (variables)
+
+## License
+
+MIT License - feel free to use and modify as needed!
