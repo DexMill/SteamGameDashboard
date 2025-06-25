@@ -31,8 +31,13 @@ app.get("/api/players", async (req, res) => {
   try {
     const { appid } = req.query;
     const url = `https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${appid}`;
+    console.log(`Fetching player count for appid: ${appid}`);
     const response = await fetch(url);
     const data = await response.json();
+    console.log(
+      `Player count response for ${appid}:`,
+      JSON.stringify(data, null, 2)
+    );
     res.json(data);
   } catch (error) {
     console.error("Error fetching player count:", error);

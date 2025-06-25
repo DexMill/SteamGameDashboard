@@ -165,8 +165,49 @@
           // Players
           const playerRes = await fetch(`/api/players?appid=${id}`);
           const playerJson = await playerRes.json();
-          const players = playerJson.response?.player_count ?? "N/A";
-          document.getElementById("players").textContent = players;
+
+          let playerDisplay = "N/A";
+          const response = playerJson.response;
+
+          if (response) {
+            // Check if we have a direct player_count
+            if (
+              response.player_count !== undefined &&
+              response.player_count !== null
+            ) {
+              playerDisplay = response.player_count.toLocaleString();
+            }
+            // Check if result contains the player count (some apps return it this way)
+            else if (
+              response.result &&
+              response.result > 0 &&
+              response.result < 1000000
+            ) {
+              // If result is a reasonable number, it's likely the player count
+              playerDisplay = response.result.toLocaleString();
+            } else {
+              // Handle cases where player count is not available
+              if (gameData && gameData.type === "demo") {
+                playerDisplay =
+                  '<span style="color: #888;">Not tracked for demos</span>';
+              } else if (
+                gameData &&
+                gameData.release_date &&
+                gameData.release_date.coming_soon
+              ) {
+                playerDisplay =
+                  '<span style="color: #888;">Not available (Coming Soon)</span>';
+              } else {
+                playerDisplay =
+                  '<span style="color: #888;">Player count not available</span>';
+              }
+            }
+          } else {
+            playerDisplay =
+              '<span style="color: #888;">Player count not available</span>';
+          }
+
+          document.getElementById("players").innerHTML = playerDisplay;
 
           // News
           const newsRes = await fetch(`/api/news?appid=${id}&count=5`);
