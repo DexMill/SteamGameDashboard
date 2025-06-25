@@ -34,12 +34,18 @@
     </div>
 
     <script>
-      let tabs = [
+      // Load games from localStorage or use defaults
+      let tabs = JSON.parse(localStorage.getItem("gameTabs")) || [
         { name: "Rumble", id: "890550" },
         { name: "Expedition 33", id: "1903340" },
-        { name: "Bloodthief", id: "2533600" },
+        { name: "Bloodthief Demo", id: "2941730" },
       ];
-      let activeTab = tabs[0].name;
+      let activeTab = tabs[0]?.name || "Rumble";
+
+      // Save games to localStorage
+      function saveTabs() {
+        localStorage.setItem("gameTabs", JSON.stringify(tabs));
+      }
 
       // Resolve game ID by name or direct ID
       async function resolveGame(query) {
@@ -109,24 +115,27 @@
           const playerRes = await fetch(`/api/players?appid=${id}`);
           const playerJson = await playerRes.json();
 
+          // Debug logging
+          console.log(`Player count response for ${id}:`, playerJson);
+
           let playerDisplay = "N/A";
           const response = playerJson.response;
 
           if (response) {
-            // Check if we have a direct player_count
+            // Check if we have a direct player_count (most common format)
             if (
               response.player_count !== undefined &&
               response.player_count !== null
             ) {
               playerDisplay = response.player_count.toLocaleString();
             }
-            // Check if result contains the player count (some apps return it this way)
+            // Check if result contains the player count (alternative format)
             else if (
-              response.result &&
-              response.result > 0 &&
-              response.result < 1000000
+              response.result !== undefined &&
+              response.result !== null &&
+              typeof response.result === "number" &&
+              response.result >= 0
             ) {
-              // If result is a reasonable number, it's likely the player count
               playerDisplay = response.result.toLocaleString();
             } else {
               // Handle cases where player count is not available
@@ -192,6 +201,11 @@
             onclick="setActiveTab('${tab.name}')"
           >
             ${tab.name}
+            ${
+              tabs.length > 1
+                ? `<span class="remove-btn" onclick="removeTab('${tab.name}', event)">×</span>`
+                : ""
+            }
           </button>
         `
           )
@@ -207,6 +221,29 @@
           document.getElementById("players").textContent = "Loading...";
           document.getElementById("newsList").innerHTML = "";
           fetchGameData(game.id);
+        }
+      }
+
+      function removeTab(name, event) {
+        event.stopPropagation(); // Prevent tab activation when clicking remove
+
+        if (tabs.length <= 1) {
+          alert("Cannot remove the last tab. Add another game first.");
+          return;
+        }
+
+        const index = tabs.findIndex((t) => t.name === name);
+        if (index !== -1) {
+          tabs.splice(index, 1);
+          saveTabs();
+
+          // If we removed the active tab, switch to the first available tab
+          if (name === activeTab) {
+            activeTab = tabs[0].name;
+          }
+
+          renderTabs();
+          setActiveTab(activeTab);
         }
       }
 
@@ -232,6 +269,7 @@
             return;
           }
           tabs.push({ name, id });
+          saveTabs();
           newGameInput.value = "";
           setActiveTab(name);
         } catch (err) {
@@ -247,7 +285,9 @@
 
       // Initial render
       renderTabs();
-      fetchGameData(tabs[0].id);
+      if (tabs.length > 0) {
+        fetchGameData(tabs[0].id);
+      }
     </script>
   </body>
 </html>
