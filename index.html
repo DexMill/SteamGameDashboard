@@ -77,8 +77,25 @@
       // Resolve game ID by name or direct ID
       async function resolveGame(query) {
         if (/^\d+$/.test(query)) {
-          return { id: query, name: query };
+          // If it's a numeric ID, fetch the game details to get the name
+          try {
+            const url = `https://store.steampowered.com/api/appdetails?appids=${query}&l=english`;
+            const data = await makeAPICall(url);
+            const gameData = data[query]?.data;
+
+            if (gameData && gameData.name) {
+              return { id: query, name: gameData.name };
+            } else {
+              // If we can't get the name, use the ID as fallback
+              return { id: query, name: query };
+            }
+          } catch (error) {
+            console.log(`Failed to fetch game name for ID ${query}:`, error);
+            // Fallback to using the ID as the name
+            return { id: query, name: query };
+          }
         } else {
+          // If it's a name, search for the game
           const url = `https://store.steampowered.com/api/storesearch?term=${encodeURIComponent(
             query
           )}&l=english&cc=US`;
