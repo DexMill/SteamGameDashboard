@@ -21,8 +21,6 @@ A cyberpunk-themed game dashboard that displays Steam game information including
 
 The dashboard comes pre-loaded with:
 
-- Rumble (ID: 890550)
-- Expedition 33 (ID: 1903340)
 - Bloodthief Demo (ID: 2941730)
 
 ## Technical Details
