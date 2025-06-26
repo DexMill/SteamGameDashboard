@@ -47,19 +47,42 @@
         localStorage.setItem("gameTabs", JSON.stringify(tabs));
       }
 
+      // Helper function to make API calls with fallback proxies
+      async function makeAPICall(url) {
+        const proxies = [
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+          `https://corsproxy.io/?${encodeURIComponent(url)}`,
+          `https://thingproxy.freeboard.io/fetch/${url}`,
+          `https://cors-anywhere.herokuapp.com/${url}`,
+        ];
+
+        for (const proxyUrl of proxies) {
+          try {
+            console.log(`Trying proxy: ${proxyUrl}`);
+            const response = await fetch(proxyUrl);
+            if (response.ok) {
+              const data = await response.json();
+              console.log(`Success with proxy: ${proxyUrl}`);
+              return data;
+            }
+          } catch (error) {
+            console.log(`Failed with proxy: ${proxyUrl}`, error);
+            continue;
+          }
+        }
+
+        throw new Error("All proxies failed");
+      }
+
       // Resolve game ID by name or direct ID
       async function resolveGame(query) {
         if (/^\d+$/.test(query)) {
           return { id: query, name: query };
         } else {
-          const res = await fetch(
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(
-              `https://store.steampowered.com/api/storesearch?term=${encodeURIComponent(
-                query
-              )}&l=english&cc=US`
-            )}`
-          );
-          const data = await res.json();
+          const url = `https://store.steampowered.com/api/storesearch?term=${encodeURIComponent(
+            query
+          )}&l=english&cc=US`;
+          const data = await makeAPICall(url);
           if (data.items && data.items.length) {
             const item = data.items[0];
             return { id: item.id, name: item.name };
@@ -71,12 +94,8 @@
       async function fetchGameData(id) {
         try {
           // Price
-          const priceRes = await fetch(
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(
-              `https://store.steampowered.com/api/appdetails?appids=${id}&l=english`
-            )}`
-          );
-          const priceJson = await priceRes.json();
+          const priceUrl = `https://store.steampowered.com/api/appdetails?appids=${id}&l=english`;
+          const priceJson = await makeAPICall(priceUrl);
           const priceData = priceJson[id]?.data?.price_overview;
           const gameData = priceJson[id]?.data;
 
@@ -132,12 +151,8 @@
           document.getElementById("price").innerHTML = priceDisplay;
 
           // Players
-          const playerRes = await fetch(
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(
-              `https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${id}`
-            )}`
-          );
-          const playerJson = await playerRes.json();
+          const playerUrl = `https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${id}`;
+          const playerJson = await makeAPICall(playerUrl);
 
           // Debug logging
           console.log(`Player count response for ${id}:`, playerJson);
@@ -186,26 +201,50 @@
           document.getElementById("players").innerHTML = playerDisplay;
 
           // News
-          const newsRes = await fetch(
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(
-              `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2?appid=${id}&count=5`
-            )}`
-          );
-          const newsJson = await newsRes.json();
-          const news = newsJson.appnews?.newsitems || [];
+          const newsUrl = `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2?appid=${id}&count=5`;
+          let news = [];
+
+          try {
+            const newsJson = await makeAPICall(newsUrl);
+            news = newsJson.appnews?.newsitems || [];
+          } catch (newsError) {
+            console.log(`News fetch failed for ${id}:`, newsError);
+            // Continue without news - don't fail the entire request
+          }
 
           const newsList = document.getElementById("newsList");
-          newsList.innerHTML = news
-            .map(
-              (item) => `
-            <li data-date="${new Date(item.date * 1000).toLocaleDateString()}">
-              <a href="${item.url}" target="_blank" rel="noopener noreferrer">
-                ${item.title}
-              </a>
-            </li>
-          `
-            )
-            .join("");
+
+          if (news.length > 0) {
+            newsList.innerHTML = news
+              .map(
+                (item) => `
+              <li data-date="${new Date(
+                item.date * 1000
+              ).toLocaleDateString()}">
+                <a href="${item.url}" target="_blank" rel="noopener noreferrer">
+                  ${item.title}
+                </a>
+              </li>
+            `
+              )
+              .join("");
+          } else {
+            // Handle cases where no news is available
+            if (gameData && gameData.type === "demo") {
+              newsList.innerHTML =
+                '<li style="color: #b0b0b0;">No news available for demos</li>';
+            } else if (
+              gameData &&
+              gameData.release_date &&
+              gameData.release_date.coming_soon
+            ) {
+              newsList.innerHTML =
+                '<li style="color: #b0b0b0;">No news available (Coming Soon)</li>';
+            } else {
+              newsList.innerHTML =
+                '<li style="color: #b0b0b0;">No recent news available</li>';
+            }
+          }
 
           // Update timestamp
           const now = new Date();
