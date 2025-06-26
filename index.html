@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Game Dashboard</title>
+    <title>Steam Game Dashboard</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -50,25 +50,59 @@
       // Helper function to make API calls with fallback proxies
       async function makeAPICall(url) {
         const proxies = [
-          `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
           `https://corsproxy.io/?${encodeURIComponent(url)}`,
           `https://thingproxy.freeboard.io/fetch/${url}`,
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
           `https://cors-anywhere.herokuapp.com/${url}`,
+          `https://cors.bridged.cc/${url}`,
+          `https://proxy.cors.sh/${url}`,
+          `https://cors.eu.org/${url}`,
+          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
         ];
 
         for (const proxyUrl of proxies) {
           try {
             console.log(`Trying proxy: ${proxyUrl}`);
-            const response = await fetch(proxyUrl);
+            const response = await fetch(proxyUrl, {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+              timeout: 10000, // 10 second timeout
+            });
+
             if (response.ok) {
-              const data = await response.json();
-              console.log(`Success with proxy: ${proxyUrl}`);
-              return data;
+              const text = await response.text();
+              try {
+                const data = JSON.parse(text);
+                console.log(`Success with proxy: ${proxyUrl}`);
+                return data;
+              } catch (parseError) {
+                console.log(
+                  `Failed to parse JSON from ${proxyUrl}:`,
+                  parseError
+                );
+                continue;
+              }
             }
           } catch (error) {
             console.log(`Failed with proxy: ${proxyUrl}`, error);
             continue;
           }
+        }
+
+        // If all proxies fail, try direct request (might work in some browsers)
+        try {
+          console.log("Trying direct request as last resort...");
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Direct request succeeded!");
+            return data;
+          }
+        } catch (directError) {
+          console.log("Direct request also failed:", directError);
         }
 
         throw new Error("All proxies failed");
